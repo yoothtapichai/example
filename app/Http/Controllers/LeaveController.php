@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use Carbon\Carbon;
 use App\Models\Leave;
 use App\Models\Leave_type;
+use App\Models\Notifications;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+
 use Illuminate\Support\Facades\Validator;
 
 class LeaveController extends Controller
@@ -31,23 +33,6 @@ class LeaveController extends Controller
             $user->avatar = '';
         }
         $leaveTypes  = Leave_type::all();
-        $pendingLeaves = $this->countLeaveStatus(1);
-        $approvedLeaves = $this->countLeaveStatus(2);
-        $rejectedLeaves = $this->countLeaveStatus(3);
-        $remainingLeave = $pendingLeaves['days_left'] + $approvedLeaves['days_left'] + $rejectedLeaves['days_left'];
-        $pending = $pendingLeaves['count'];
-        $approved = $approvedLeaves['count'];
-        $rejected = $approvedLeaves['count'];
-
-        $modal = array();
-
-        foreach ($leaveTypes as $key => $value) {
-
-            $modal[$leaveTypes[$key]['id']] = ' จำนวนวันที่ ' . $this->leave_types_name($leaveTypes[$key]['id']) . ' เหลือ ' .   $this->countLeaveStatus($leaveTypes[$key]['id'])['days_left'] . ' วัน';
-        }
-
-
-
 
         $leaves = Leave::join('leave_types', 'leave_types.id', '=', 'leaves.leave_type_id')
             ->select('leaves.*', 'leave_types.leave_type_name')
@@ -77,11 +62,28 @@ class LeaveController extends Controller
         $pendingLeaves = $this->countLeaveStatus(1);
         $approvedLeaves = $this->countLeaveStatus(2);
         $rejectedLeaves = $this->countLeaveStatus(3);
+
         $remainingLeave = $pendingLeaves['days_left'] + $approvedLeaves['days_left'] + $rejectedLeaves['days_left'];
         $pending = $pendingLeaves['count'];
         $approved = $approvedLeaves['count'];
-        $rejected = $approvedLeaves['count'];
+        $rejected = $rejectedLeaves['count'];
+        // dd($rejected);
+        $modal = array();
 
+        foreach ($leaveTypes as $key => $value) {
+
+            $leaveTypeId = $leaveTypes[$key]['id'];
+            $leaveTypeName = $this->leave_types_name($leaveTypeId);
+
+            $leaveStatusCount = DB::table('leaves')
+                ->where('leave_type_id', $leaveTypeId)
+                ->where('leave_status', 2) // APPROVED
+                ->count();
+
+            $leaveLimit = Leave_type::where('id', $leaveTypeId)->first()->leave_limit;
+            $daysLeft = $leaveLimit - $leaveStatusCount;
+            $modal[$leaveTypes[$key]['id']] = ' จำนวนวันที่ ' . $this->leave_types_name($leaveTypes[$key]['id']) . ' เหลือ ' .  $daysLeft .   ' วัน';
+        }
 
 
         return view('leave.index', compact('user', 'leaves', 'pending', 'approved', 'rejected', 'remainingLeave', 'modal', 'leaveTypes', 'startDate', 'endDate'));
@@ -101,15 +103,24 @@ class LeaveController extends Controller
         $remainingLeave = $pendingLeaves['days_left'] + $approvedLeaves['days_left'] + $rejectedLeaves['days_left'];
         $pending = $pendingLeaves['count'];
         $approved = $approvedLeaves['count'];
-        $rejected = $approvedLeaves['count'];
+        $rejected = $rejectedLeaves['count'];
 
         $modal = array();
 
         foreach ($leaveTypes as $key => $value) {
 
-            $modal[$leaveTypes[$key]['id']] = ' จำนวนวันที่ ' . $this->leave_types_name($leaveTypes[$key]['id']) . ' เหลือ ' .   $this->countLeaveStatus($leaveTypes[$key]['id'])['days_left'] . ' วัน';
-        }
+            $leaveTypeId = $leaveTypes[$key]['id'];
+            $leaveTypeName = $this->leave_types_name($leaveTypeId);
 
+            $leaveStatusCount = DB::table('leaves')
+                ->where('leave_type_id', $leaveTypeId)
+                ->where('leave_status', 2) // APPROVED
+                ->count();
+
+            $leaveLimit = Leave_type::where('id', $leaveTypeId)->first()->leave_limit;
+            $daysLeft = $leaveLimit - $leaveStatusCount;
+            $modal[$leaveTypes[$key]['id']] = ' จำนวนวันที่ ' . $this->leave_types_name($leaveTypes[$key]['id']) . ' เหลือ ' .  $daysLeft .   ' วัน';
+        }
 
 
 
@@ -162,9 +173,18 @@ class LeaveController extends Controller
 
                 $addLeave->created_at     = date("Y-m-d H:i:s");
                 $addLeave->updated_at     = date("Y-m-d H:i:s");
-
-
                 $addLeave->save();
+
+                $noti =  new Notifications();
+                $noti->user_id = Auth::user()->id;
+                $noti->user_name = Auth::user()->name;
+                $noti->user_type = (Auth::user()->type == 'admin') ? 1 : 0;
+                $noti->leave_id = $request->leave_type_id;
+                $noti->leave_name = $this->leave_types_name($request->leave_type_id);
+                $noti->created_at     = date("Y-m-d H:i:s");
+                $noti->updated_at     = date("Y-m-d H:i:s");
+                $noti->save();
+
                 return response()->json(['success' => true, 'msg' => 'Add a leave letter']);
             } catch (\Exception $e) {
                 return response()->json(['success' => false, 'msg' => $e->getMessage()]);
@@ -235,9 +255,18 @@ class LeaveController extends Controller
             $modal = array();
 
             foreach ($leaveTypes as $key => $value) {
-                // dd($leaveTypes[$key]);
 
-                $modal[$leaveTypes[$key]['id']] = ' จำนวนวันที่ ' . $this->leave_types_name($leaveTypes[$key]['id']) . ' เหลือ ' .   $this->countLeaveStatus($leaveTypes[$key]['id'])['days_left'] . ' วัน';
+                $leaveTypeId = $leaveTypes[$key]['id'];
+                $leaveTypeName = $this->leave_types_name($leaveTypeId);
+
+                $leaveStatusCount = DB::table('leaves')
+                    ->where('leave_type_id', $leaveTypeId)
+                    ->where('leave_status', 2) // APPROVED
+                    ->count();
+
+                $leaveLimit = Leave_type::where('id', $leaveTypeId)->first()->leave_limit;
+                $daysLeft = $leaveLimit - $leaveStatusCount;
+                $modal[$leaveTypes[$key]['id']] = ' จำนวนวันที่ ' . $this->leave_types_name($leaveTypes[$key]['id']) . ' เหลือ ' .  $daysLeft .   ' วัน';
             }
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'msg' => $e->getMessage()]);
@@ -318,22 +347,62 @@ class LeaveController extends Controller
 
             Leave::where('id', $request->id)->delete();
 
-
-
             return response()->json(['success' => true, 'msg' => 'Leaves delete successfully']);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'msg' => $e->getMessage()]);
         }
+    }
+    public function noti(Request $request)
+    {
+
+        try {
+            $type = (Auth::user()->type == 'admin') ? 0 : 1;
 
 
+            $Notifi = Notifications::where('user_type', $type)
+                ->orderBy('created_at', 'desc') // Order by created_at descending
+                ->get();
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'msg' => $e->getMessage()]);
+        }
+        if ($type  == 0) {
+            return view('leave.noti_admin', compact('Notifi'));
+        } else {
+            return view('leave.noti_admin', compact('Notifi'));
+        }
+    }
+    public function seen_noti(Request $request)
+    {
 
-        // return view('leave.listdata', compact('leaves', 'modal'));
+   
+            try {
+                $type = (Auth::user()->type == 'admin') ? 0 : 1;
+        
+                $Notifi = Notifications::where('user_type', $type)
+                    ->orderBy('created_at', 'desc') // Order by created_at descending
+                    ->get();
+        
+                // Count unread notifications
+                $unreadCount = $Notifi->where('seen', 0)->count();
+        
+                // Prepare response data
+                $data = [
+                    'unread_count' => $unreadCount,
+                    'notifications' => $Notifi,
+                ];
+        
+                return response()->json(['success' => true, 'msg' => 'Notifications retrieved successfully', 'data' => $data]);
+            } catch (\Exception $e) {
+                return response()->json(['success' => false, 'msg' => $e->getMessage()]);
+            }
+        
     }
 
 
     function countLeaveStatus($leaveStatus)
     {
         try {
+
             $leaveStatusCount = DB::table('leaves')
                 ->join('leave_types', 'leave_types.id', '=', 'leaves.leave_type_id')
                 ->where('leave_status', $leaveStatus)
@@ -342,9 +411,19 @@ class LeaveController extends Controller
 
             $leaveLimit = Leave_type::where('id', $leaveStatus)->first()->leave_limit;
 
+            // echo '<pre>';
+            // echo "leaveStatus =>" . $leaveStatus . "|";
+            // echo $leaveLimit;
+            // echo $leaveStatusCount;
+            // echo '||';
+            // echo '</pre>';
+
+
+            $daysLeft = $leaveLimit - $leaveStatusCount;
             if ($leaveStatus === 2) { // Check if leave_status is APPROVED (2)
                 $daysLeft = $leaveLimit - $leaveStatusCount;
             } else {
+                // dd( $leaveStatusCount);
                 $daysLeft =  $leaveLimit;
             }
             //    = $leaveLimit - $leaveStatusCount;

@@ -57,19 +57,19 @@
             <nav class="sb-sidenav accordion sb-sidenav-dark" id="sidenavAccordion">
                 <div class="sb-sidenav-menu">
                     <div class="nav">
-                        <div class="sb-sidenav-menu-heading">Core</div>
+                        <div class="sb-sidenav-menu-heading">เมนู</div>
 
                         @if (auth()->user()->type == 'user')
-                        <a class="nav-link" href="{{ route('leave.index') }}">
-                            <div class="sb-nav-link-icon"><i class="fas fa-tachometer-alt"></i></div>
-                            การลาของฉัน
-                        </a>
-                        <a class="nav-link" href="{{ route('leave.request') }}">
-                            <div class="sb-nav-link-icon"><i class="fa-solid fa-reply"></i></div>
-                            ยื่นเรื่องขอลา
-                        </a>
+                            <a class="nav-link" href="{{ route('leave.index') }}">
+                                <div class="sb-nav-link-icon"><i class="fas fa-tachometer-alt"></i></div>
+                                การลาของฉัน
+                            </a>
+                            <a class="nav-link" href="{{ route('leave.request') }}">
+                                <div class="sb-nav-link-icon"><i class="fa-solid fa-reply"></i></div>
+                                ยื่นเรื่องขอลา
+                            </a>
                         @endif
-                
+
                         @if (auth()->user()->type == 'admin')
                             <a class="nav-link" href="{{ route('admin.leaves.listdata') }}">
                                 <div class="sb-nav-link-icon"><i class="fas fa-tachometer-alt"></i></div>
@@ -77,6 +77,12 @@
 
                             </a>
                         @endif
+                        <a class="nav-link" href="{{ route('noti') }}">
+                            <div class="sb-nav-link-icon"><i id="iconnoti" class="fa-regular fa-bell"></i>
+                                <span style="color: yellow" id='noti_span'></span>
+                            </div>
+                            แจ้งเตือน
+                        </a>
                         <a class="nav-link" href="{{ route('logout') }}">
                             <div class="sb-nav-link-icon"><i class="fa-solid fa-right-from-bracket"></i></div>
                             ออกจากระบบ
@@ -119,6 +125,51 @@
     <script src="{{ asset('public/backend/js/simple-datatables.min.js') }}"></script>
     <script src="{{ asset('public/backend/js/datatables-simple-demo.js') }}"></script>
     <script src="{{ asset('public/backend/js/sweetalert2.js') }}"></script>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script>
+        $(document).ready(function() {
+
+            let csrfToken = $('meta[name="csrf-token"]').attr('content'); // เก็บค่า CSRF token
+
+            $.ajax({
+                url: '{{ route('seenNoti') }}',
+                method: "GET",
+                // data: formData,
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken // เพิ่ม CSRF token เข้าไปใน header
+                },
+                contentType: false,
+                processData: false,
+                beforeSend: function() {
+
+                },
+                complete: function() {
+
+                },
+                success: function(data) {
+                    // console.log(data);
+                    if (data.success == true) {
+                        // data.res['unread_count'];
+
+                        if (data.data.unread_count > 0) {
+                            $('#noti_span').html(' (' + data.data.unread_count + ') ')
+                            $("#iconnoti").css("color", "yellow");
+                        }
+
+
+
+                    } else if (data.success == false) {
+                        printErrorMsg(data.msg);
+                    } else {
+                        printValidationErrorMsg(data.msg);
+                    }
+
+                }
+
+            });
+        });
+    </script>
 </body>
 
 </html>

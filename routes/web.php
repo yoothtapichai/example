@@ -65,6 +65,10 @@ Route::middleware(['auth', 'user-access:admin'])->group(function () {
     // Route::put('/admin/leave/update', [LeaveController::class, 'updateLeave'])->name('admin.leaves.update');
     
 });
+
+Route::get('/noti', [LeaveController::class, 'noti'])->name('noti');
+Route::get('/seen-noti', [LeaveController::class, 'seen_noti'])->name('seenNoti');
+
 // profile
 Route::get('/profile', [ProfileController::class, 'profile'])->name('profile');
 Route::post('/edit-name-profile', [ProfileController::class, 'edit_name_profile'])->name('editNameProfile');
@@ -76,6 +80,7 @@ Route::delete('/delete-img-profile', [ProfileController::class, 'delete_img_prof
 Route::delete('/delete-user-profile', [ProfileController::class, 'delete_user_profile'])->name('deleteUserProfile');
 
 //Admin Routes List
+
 Route::middleware(['auth', 'user-access:manager'])->group(function () {
 
     Route::get('/manager/home', [HomeController::class, 'managerHome'])->name('manager.home');
