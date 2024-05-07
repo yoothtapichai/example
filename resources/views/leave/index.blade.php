@@ -2,9 +2,7 @@
 @section('title')
     การลาของฉัน - ระบบลาออนไลน์
 @endsection
-@section('css')
-    <link href="{{ asset('public/backend/css/upload.css') }}" rel="stylesheet" />
-@endsection
+
 @section('content')
     <div class="container">
         <div class="mt-4">
@@ -12,9 +10,11 @@
                 <div class="col-md-3">
                     <div class="card mb-4">
                         @if ($user->avatar)
-                            <img src="{{ asset($user->avatar) }}" class="card-img-top" alt="Profile Picture">
+                            <img src="{{ asset($user->avatar) }}" class="card-img-top" alt="Profile Picture"
+                                onerror="this.src='{{ asset('public/backend/default.jpg') }}'">
                         @else
-                            <img src="https://picsum.photos/200" class="card-img-top" alt="Profile Picture" width="">
+                            <img src="https://picsum.photos/200" class="card-img-top" alt="Profile Picture" width=""
+                                onerror="this.src='{{ asset('public/backend/default.jpg') }}'">
                         @endif
 
                         <div class="card-body text-center">
@@ -50,7 +50,7 @@
                         </div>
                         <div class="col-xl-3 col-md-6">
                             <div class="card bg-success text-white mb-4">
-                                <div class="card-body">{{ $approved }} วันลาที่ลาแล้ว</div>
+                                <div class="card-body">{{ $approved }} วันลาที่อนุมัติแล้ว</div>
                                 <div class="card-footer d-flex align-items-center justify-content-between">
 
                                 </div>
@@ -101,10 +101,14 @@
                                                         data-leave_period="{{ $leave->leave_period }}"
                                                         data-phone_number="{{ $leave->phone_number }}"
                                                         data-leave_reason="{{ $leave->leave_reason }}">รออนุมัติ</button>
-                                                        <button type="button" class="btn btn-outline-danger deleteRequest"
+                                                    <button type="button" class="btn btn-outline-danger deleteRequest"
                                                         data-id="{{ $leave->id }}">ลบ</button>
                                                 @elseif($leave->leave_status == 2)
                                                     <button type="button" class="btn btn-success" disabled>อนุมัติ</button>
+                                                    @if ($leave->ifdate)
+                                                        <button type="button" class="btn btn-outline-danger deleteRequest"
+                                                            data-id="{{ $leave->id }}">ลบ</button>
+                                                    @endif
                                                 @elseif($leave->leave_status == 3)
                                                     <button type="button" class="btn btn-danger modalEdit"
                                                         data-bs-toggle="modal" data-bs-target="#modalEdit"
@@ -117,7 +121,7 @@
                                                         data-leave_reason="{{ $leave->leave_reason }}"
                                                         data-leave_status="{{ $leave->leave_status }}"
                                                         data-admin_comment="{{ $leave->admin_comment }}">ไม่อนุมัติ</button>
-                                                        <button type="button" class="btn btn-outline-danger deleteRequest"
+                                                    <button type="button" class="btn btn-outline-danger deleteRequest"
                                                         data-id="{{ $leave->id }}">ลบ</button>
                                                 @endif
 
@@ -248,7 +252,7 @@
                         </div>
                         <div class=" mb-3 text-end">
                             <button type="submit" class="btn btn-primary editRequest">แก้ไข</button>
-                           
+
 
 
                         </div>
@@ -262,7 +266,7 @@
         </div>
     </div>
 
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    {{-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script> --}}
 
     <script>
         $(document).ready(function() {
@@ -277,7 +281,7 @@
                     $('#div_admin_comment').removeAttr("hidden");
                     $('#admin_comment').val(admin_comment);
                 }
-               
+
 
                 var leave_id = $(this).attr('data-id');
                 var leave_type_id = $(this).attr('data-leave_type_id');

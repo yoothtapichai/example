@@ -20,6 +20,7 @@ class CreateLeavesTable extends Migration
             $table->enum('leave_period', ['1', '2', '3']);//['MORNING', 'AFTERNOON', 'FULL_DAY']
             $table->dateTime('start_date');
             $table->dateTime('end_date');
+            $table->integer('date');
             $table->string('phone_number');
             $table->text('leave_reason');
             $table->enum('leave_status', ['1', '2', '3']);//['PENDING', 'APPROVED', 'REJECTED']

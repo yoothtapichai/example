@@ -55,14 +55,14 @@ class LoginController extends Controller
 
         if (auth()->attempt(array('email' => $input['email'], 'password' => $input['password']))) {
             // dd($input['email']);
-            $this->addlog($input['email'], "login success",'success');
+            $this->addlog($input['email'], "login success", 'success');
             if (auth()->user()->type == 'admin') {
                 return redirect()->route('noti');
             } else {
                 return redirect()->route('noti');
             }
         } else {
-            $this->addlog($input['email'], "Email-Address And Password Are Wrong.",'failed');
+            $this->addlog($input['email'], "Email-Address And Password Are Wrong.", 'failed');
             return redirect()->route('login')
                 ->with('error', 'Email-Address And Password Are Wrong.');
         }
@@ -111,6 +111,7 @@ class LoginController extends Controller
     {
         // dd($data);
         $user = User::where('email', '=', $data->email)->first();
+      
         if (!$user) {
 
             $user = new User();
@@ -120,18 +121,24 @@ class LoginController extends Controller
             $user->provider_id = $data->id;
             $user->avatar = $data->avatar;
             $user->save();
-            $this->addlog($data->email, "login success",'success');
+            $this->addlog($data->email, "login success", 'success');
+
+            // dd('test');
             Auth::login($user);
         } else {
 
-            // $this->addlog($data->email, "Email address is already in use.");
+            if ($user->provider == 'google' || $user->provider == 'facebook') {
+                Auth::login($user);
+            } else {
+                $this->addlog($data->email, "Email-Address And Password Are Wrong.", 'failed');
+            }
         }
     }
 
-    function addlog($email, $msg,$status)
+    function addlog($email, $msg, $status)
     {
 
-   
+
         DB::table('log_login')->insert([
             'email' => $email,
             'user_location' => request()->userAgent(), // Access user agent directly

@@ -64,10 +64,10 @@
                                             <button type="button" class="btn btn-outline-info mb-2"
                                                 disabled>ไม่อนุมัติ</button><br>
                                             <button type="button"
-                                                class="btn btn-outline-danger mb-2 btn_delete">ลบ</button><br>
+                                                class="btn btn-outline-danger mb-2 btn_delete" data-id="{{ $leave->id }}" >ลบ</button><br>
                                         @else
                                             <button type="button" class="btn btn-outline-warning mb-2 btn_pending"
-                                                data-id="{{ $leave->id }}">รออนุมัติ</button><br>
+                                                data-id="{{ $leave->id }}">ยืนยัน</button><br>
                                             <button type="button" class="btn btn-outline-info mb-2 btn_reply"
                                                 data-bs-toggle="modal" data-bs-target="#modalreply"
                                                 data-id="{{ $leave->id }}">ตอบกลับ</button><br>
@@ -125,7 +125,7 @@
         </div>
     </div>
 
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    {{-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script> --}}
 
     <script>
         $(document).ready(function() {

@@ -23,6 +23,7 @@
                             <th>ชื่อ</th>
                             <th>วันที่เพิ่ม</th>
                             <th>วันลาสูงสุด</th>
+                            <th>แจ้งล่วงหน้า</th>
                         </tr>
                     </thead>
 
@@ -34,6 +35,7 @@
                             <th>{{$type->leave_type_name}}</th>
                             <th>{{$type->created_at}}</th>
                             <th>{{$type->leave_limit}}</th>
+                            <th>{{$type->advance_days}}</th>
                            
                         </tr>  
                         @endforeach

@@ -2,9 +2,7 @@
 @section('title')
     ยื่นเรื่องขอลา - ระบบลาออนไลน์
 @endsection
-@section('css')
-    <link href="{{ asset('public/backend/css/upload.css') }}" rel="stylesheet" />
-@endsection
+
 @section('content')
     <div class="container">
         <div class="mt-4">
@@ -12,9 +10,9 @@
                 <div class="col-md-3">
                     <div class="card mb-4">
                         @if ($user->avatar)
-                            <img src="{{ asset($user->avatar) }}" class="card-img-top" alt="Profile Picture">
+                            <img src="{{ asset($user->avatar) }}" class="card-img-top" alt="Profile Picture" onerror="this.src='{{ asset('public/backend/default.jpg') }}'">
                         @else
-                            <img src="https://picsum.photos/200" class="card-img-top" alt="Profile Picture">
+                            <img src="https://picsum.photos/200" class="card-img-top" alt="Profile Picture" onerror="this.src='{{ asset('public/backend/default.jpg') }}'">
                         @endif
 
                         <div class="card-body text-center">
@@ -50,7 +48,7 @@
                         </div>
                         <div class="col-xl-3 col-md-6">
                             <div class="card bg-success text-white mb-4">
-                                <div class="card-body">{{ $approved }} วันลาที่ลาแล้ว</div>
+                                <div class="card-body">{{ $approved }} วันลาที่อนุมัติแล้ว</div>
                                 <div class="card-footer d-flex align-items-center justify-content-between">
 
                                 </div>
@@ -174,7 +172,7 @@
     </div>
 
 
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    {{-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script> --}}
 
     <script>
         $(document).ready(function() {

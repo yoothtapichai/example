@@ -2,9 +2,7 @@
 @section('title')
     Profile - SB Admin
 @endsection
-@section('css')
-    <link href="{{ asset('public/backend/css/upload.css') }}" rel="stylesheet" />
-@endsection
+
 @section('content')
     <div class="container">
         <div class="mt-4">
@@ -12,9 +10,9 @@
                 <div class="col-md-3">
                     <div class="card mb-4">
                         @if ($user->avatar)
-                            <img src="{{ asset($user->avatar) }}" class="card-img-top" alt="Profile Picture">
+                            <img src="{{ asset($user->avatar) }}" class="card-img-top" alt="Profile Picture" onerror="this.src='{{ asset('public/backend/default.jpg') }}'">
                         @else
-                            <img src="https://picsum.photos/200" class="card-img-top" alt="Profile Picture">
+                            <img src="https://picsum.photos/200" class="card-img-top" alt="Profile Picture" onerror="this.src='{{ asset('public/backend/default.jpg') }}'">
                         @endif
 
                         <div class="card-body text-center">
@@ -63,16 +61,16 @@
                                     <button type="button" class="btn btn-outline-primary edit_pass" data-bs-toggle="modal"
                                         data-bs-target="#edit_pass" data-id="{{ $user->id }}">เปลี่ยนรหัสผ่าน</button>
                                 </li>
-                                <li class="list-group-item">
+                                {{-- <li class="list-group-item">
                                     <button type="button" class="btn btn-outline-primary admin_detail"
                                         data-bs-toggle="modal" data-bs-target="#admin_detail" data-id="{{ $user->id }}"
                                         data-createdby="{{ $user->created_by }}"
                                         data-createdat="{{ $user->created_at }}">ดูรายละเอียดการสมัคร</button>
-                                </li>
-                                <li class="list-group-item">
+                                </li> --}}
+                                {{-- <li class="list-group-item">
                                     <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal"
                                         data-bs-target="#delete_user" data-id="{{ $user->id }}">ลบข้อมูลผู้ใช้</button>
-                                </li>
+                                </li> --}}
 
                             </ul>
                         </div>

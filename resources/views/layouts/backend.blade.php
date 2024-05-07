@@ -33,7 +33,7 @@
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
                     <li><a class="dropdown-item" href="{{ route('profile') }}">การตั้งค่า</a></li>
-                    <li><a class="dropdown-item" href="#!">Activity Log</a></li>
+                    {{-- <li><a class="dropdown-item" href="#!">Activity Log</a></li> --}}
                     <li>
                         <hr class="dropdown-divider" />
                     </li>
@@ -111,6 +111,7 @@
         </div>
         <div id="layoutSidenav_content">
             <main>
+                <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
                 @yield('content')
 
             </main>
@@ -140,7 +141,7 @@
     <script src="{{ asset('public/backend/js/datatables-simple-demo.js') }}"></script>
     <script src="{{ asset('public/backend/js/sweetalert2.js') }}"></script>
 
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    {{-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script> --}}
     <script>
         $(document).ready(function() {
 

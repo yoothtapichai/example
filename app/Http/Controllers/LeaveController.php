@@ -54,7 +54,7 @@ class LeaveController extends Controller
                 // $start_date ไม่ได้เป็นวันเดียวกับ $end_date
                 $days = $end_date->diffInDays($start_date) + 1; // คำนวณจำนวนวัน 
             }
-
+            $leaves[$key]->ifdate = Carbon::now()->lt($value['start_date']);
             // อัปเดตจำนวนวันลาในแต่ละใบลา
             $leaves[$key]->days = $days;
         }
@@ -67,9 +67,9 @@ class LeaveController extends Controller
         $rejectedLeaves = $this->countLeaveStatus(3);
 
         $remainingLeave = $pendingLeaves['days_left'] + $approvedLeaves['days_left'] + $rejectedLeaves['days_left'];
-        $pending = $pendingLeaves['count'];
-        $approved = $approvedLeaves['count'];
-        $rejected = $rejectedLeaves['count'];
+        $pending = !empty($pendingLeaves['count']) ? $pendingLeaves['count'] : 0;
+        $approved = !empty($approvedLeaves['count']) ? $approvedLeaves['count'] : 0;
+        $rejected = !empty($rejectedLeaves['count']) ? $rejectedLeaves['count'] : 0;
         // dd($rejected);
         $modal = array();
 
@@ -79,9 +79,13 @@ class LeaveController extends Controller
             $leaveTypeName = $this->leave_types_name($leaveTypeId);
 
             $leaveStatusCount = DB::table('leaves')
+                ->where('user_id', Auth::user()->id)
                 ->where('leave_type_id', $leaveTypeId)
                 ->where('leave_status', 2) // APPROVED
-                ->count();
+                ->whereYear('leaves.start_date', Carbon::now()->year)
+                ->select(DB::raw('SUM(leaves.date) AS count'))
+                ->first()->count;
+
 
             $leaveLimit = Leave_type::where('id', $leaveTypeId)->first()->leave_limit;
             $daysLeft = $leaveLimit - $leaveStatusCount;
@@ -104,9 +108,9 @@ class LeaveController extends Controller
         $approvedLeaves = $this->countLeaveStatus(2);
         $rejectedLeaves = $this->countLeaveStatus(3);
         $remainingLeave = $pendingLeaves['days_left'] + $approvedLeaves['days_left'] + $rejectedLeaves['days_left'];
-        $pending = $pendingLeaves['count'];
-        $approved = $approvedLeaves['count'];
-        $rejected = $rejectedLeaves['count'];
+        $pending = !empty($pendingLeaves['count']) ? $pendingLeaves['count'] : 0;
+        $approved = !empty($approvedLeaves['count']) ? $approvedLeaves['count'] : 0;
+        $rejected = !empty($rejectedLeaves['count']) ? $rejectedLeaves['count'] : 0;
 
         $modal = array();
 
@@ -115,10 +119,18 @@ class LeaveController extends Controller
             $leaveTypeId = $leaveTypes[$key]['id'];
             $leaveTypeName = $this->leave_types_name($leaveTypeId);
 
+            // $leaveStatusCount = DB::table('leaves')
+            //     ->where('leave_type_id', $leaveTypeId)
+            //     ->where('leave_status', 2) // APPROVED
+            //     ->count();
+
             $leaveStatusCount = DB::table('leaves')
+                ->where('user_id', Auth::user()->id)
                 ->where('leave_type_id', $leaveTypeId)
                 ->where('leave_status', 2) // APPROVED
-                ->count();
+                ->whereYear('leaves.start_date', Carbon::now()->year)
+                ->select(DB::raw('SUM(leaves.date) AS count'))
+                ->first()->count;
 
             $leaveLimit = Leave_type::where('id', $leaveTypeId)->first()->leave_limit;
             $daysLeft = $leaveLimit - $leaveStatusCount;
@@ -150,8 +162,13 @@ class LeaveController extends Controller
         ]);
 
 
+        //เช็คลาล่วงหน้า
+        $return =  $this->check_date($request->start_date, $request->leave_type_id);
 
+        if ($return['success'] != true) {
 
+            return response()->json(['success' => false, 'msg' => $return['message']]);
+        }
         if ($validator->fails()) {
 
             return response()->json(['msg' => $validator->errors()->toArray()]);
@@ -170,6 +187,11 @@ class LeaveController extends Controller
                 $addLeave->leave_period = $request->leave_period;
                 $addLeave->start_date = $request->start_date;
                 $addLeave->end_date = $request->end_date;
+
+                $startDate = Carbon::parse($request->start_date);
+                $endDate = Carbon::parse($request->end_date);
+                $numberOfDays = $endDate->diffInDays($startDate);
+                $addLeave->date = $numberOfDays + 1;
                 $addLeave->phone_number = $request->phone_number;
                 $addLeave->leave_reason = $request->leave_reason;
                 $addLeave->leave_status = 1;
@@ -221,11 +243,17 @@ class LeaveController extends Controller
                     return response()->json(['success' => false, 'msg' => "จำนวนประเภทการลา " . $_name . " ของคุณครบแล้ว"]);
                 }
 
+                $startDate = Carbon::parse($request->start_date);
+                $endDate = Carbon::parse($request->end_date);
+                $numberOfDays = $endDate->diffInDays($startDate);
+                $date__ = $numberOfDays + 1;
+
                 $editLeave = Leave::where('id', $request->id)->update([
                     'leave_type_id' => $request->leave_type_id,
                     'leave_period' => $request->leave_period,
                     'start_date' => $request->start_date,
                     'end_date' => $request->end_date,
+                    'date' =>   $date__,
                     'phone_number' => $request->phone_number,
                     'leave_reason' => $request->leave_reason,
                     'leave_status' => 1,
@@ -276,11 +304,25 @@ class LeaveController extends Controller
                         $leaveTypeId = $leaveTypes[$key]['id'];
                         $leaveTypeName = $this->leave_types_name($leaveTypeId);
 
+                        // $leaveStatusCount = DB::table('leaves')
+                        //     ->where('user_id', $v->user_id)
+                        //     ->where('leave_type_id', $leaveTypeId)
+                        //     ->where('leave_status', 2) // APPROVED
+                        //     ->count();
+
                         $leaveStatusCount = DB::table('leaves')
                             ->where('user_id', $v->user_id)
                             ->where('leave_type_id', $leaveTypeId)
                             ->where('leave_status', 2) // APPROVED
-                            ->count();
+                            ->whereYear('leaves.start_date', Carbon::now()->year)
+                            ->select(DB::raw('SUM(leaves.date) AS count'))
+                            ->first()->count;
+
+
+                        // $leaveStatusCount = DB::table('leaves')
+                        //     ->where('leave_type_id', $leaveTypeId)
+                        //     ->where('leave_status', 2) // APPROVED
+
 
                         $leaveLimit = Leave_type::where('id', $leaveTypeId)->first()->leave_limit;
                         $daysLeft = $leaveLimit - $leaveStatusCount;
@@ -452,13 +494,13 @@ class LeaveController extends Controller
             $type = (Auth::user()->type == 'admin') ? 0 : 1;
 
             $Notifi = Notifications::where('user_type', $type)
-                ->orderBy('created_at', 'desc') // Order by created_at descending
+                ->orderBy('created_at', 'desc') // 
                 ->get();
 
-            // Count unread notifications
+           
             $unreadCount = $Notifi->where('seen', 0)->count();
 
-            // Prepare response data
+       
             $data = [
                 'unread_count' => $unreadCount,
                 'notifications' => $Notifi,
@@ -576,9 +618,10 @@ class LeaveController extends Controller
 
 
         try {
-       
-                           
-            $log_login  =  DB::table('log_login')->get();
+
+            $log_login  =  DB::table('log_login')
+            ->orderBy('login_time', 'desc')
+            ->get();
 
             return view('leave.log_login', compact('log_login'));
         } catch (\Exception $e) {
@@ -595,17 +638,12 @@ class LeaveController extends Controller
                 ->join('leave_types', 'leave_types.id', '=', 'leaves.leave_type_id')
                 ->where('user_id', Auth::user()->id)
                 ->where('leave_status', $leaveStatus)
-                ->select(DB::raw('COUNT(DISTINCT leaves.id) AS count'))
+                ->whereYear('leaves.start_date', Carbon::now()->year)
+                ->select(DB::raw('SUM(leaves.date) AS count'))
                 ->first()->count;
 
             $leaveLimit = Leave_type::where('id', $leaveStatus)->first()->leave_limit;
 
-            // echo '<pre>';
-            // echo "leaveStatus =>" . $leaveStatus . "|";
-            // echo $leaveLimit;
-            // echo $leaveStatusCount;
-            // echo '||';
-            // echo '</pre>';
 
 
             $daysLeft = $leaveLimit - $leaveStatusCount;
@@ -626,6 +664,7 @@ class LeaveController extends Controller
             return response()->json(['success' => false, 'msg' => $e->getMessage()]);
         }
     }
+
 
     function leave_types_name($leaveStatus)
     {
@@ -650,5 +689,54 @@ class LeaveController extends Controller
         }
 
         return isset($leave->leave_type_name) ? $leave->leave_type_name : '';
+    }
+    // function check_date($start_date, $id)
+    // {
+
+    //     $advanceDays = Leave_type::where('id', $id)->first()->advance_days;
+
+
+    //     $startDate = Carbon::parse($start_date);
+
+    //     $return = $startDate->diff(Carbon::now()->addDays((int)$advanceDays));
+
+    //     dd($return);
+    // }
+
+    function check_date($start_date, $id)
+    {
+        try {
+            // Retrieve advance_days based on leave_type_id
+            $advanceDays = Leave_type::where('id', $id)->first()->advance_days;
+
+            if ($advanceDays == 0) {
+                return ['success' => true];
+            }
+            if (is_null($advanceDays)) {
+
+                return ['success' => false, 'message' => 'ไม่มีข้อมูล'];
+            }
+
+
+            $validStartDate = Carbon::parse($start_date);
+
+
+            if ($validStartDate->isBefore(Carbon::now())) {
+                return ['success' => false, 'message' => 'วันลาเริ่มต้องต้องอย่างน้อย ' . $advanceDays . ' วัน'];
+            }
+
+
+            $daysRemaining = $validStartDate->diffInDays(Carbon::now()->addDays($advanceDays));
+
+
+            if ($daysRemaining > 0) {
+                return ['success' => true, 'days_remaining' => $daysRemaining];
+            } else {
+                return ['success' => false, 'message' => 'ไม่มีวันเหลือสำหรับการขอลา'];
+            }
+        } catch (\Exception $e) {
+
+            return ['success' => false, 'message' => 'Error checking date: ' . $e->getMessage()];
+        }
     }
 }
