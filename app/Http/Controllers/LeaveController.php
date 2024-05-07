@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Carbon\Carbon;
 use App\Models\Leave;
 use App\Models\Leave_type;
+use App\Models\Log_login;
 use App\Models\Notifications;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -35,7 +36,9 @@ class LeaveController extends Controller
         $leaveTypes  = Leave_type::all();
 
         $leaves = Leave::join('leave_types', 'leave_types.id', '=', 'leaves.leave_type_id')
+            ->where('user_id', Auth::user()->id)
             ->select('leaves.*', 'leave_types.leave_type_name')
+            ->orderBy('created_at', 'desc') // 
             ->get();
 
         foreach ($leaves as $key => $value) {
@@ -230,6 +233,17 @@ class LeaveController extends Controller
 
                 ]);
 
+                $noti =  new Notifications();
+                $noti->user_id = Auth::user()->id;
+                $noti->user_name = Auth::user()->name;
+                $noti->user_type = (Auth::user()->type == 'admin') ? 1 : 0;
+                $noti->leave_id = $request->leave_type_id;
+                $noti->leave_name = $this->leave_types_name($request->leave_type_id);
+                $noti->created_at     = date("Y-m-d H:i:s");
+                $noti->updated_at     = date("Y-m-d H:i:s");
+                $noti->save();
+
+
 
                 return response()->json(['success' => true, 'msg' => 'Updated a leave letter']);
             } catch (\Exception $e) {
@@ -246,6 +260,7 @@ class LeaveController extends Controller
             $leaves = Leave::join('leave_types', 'leave_types.id', '=', 'leaves.leave_type_id')
                 ->join('users', 'users.id', '=', 'leaves.user_id')
                 ->select('leaves.*', 'leave_types.leave_type_name', 'users.name', 'users.email')
+                ->orderBy('created_at', 'desc')
                 ->get();
 
 
@@ -253,21 +268,28 @@ class LeaveController extends Controller
             $leaveTypes  = Leave_type::all();
 
             $modal = array();
+            foreach ($leaves as $k => $v) {
+                // dd($v->user_id);
+                if (empty($modal[$v->user_id])) {
+                    foreach ($leaveTypes as $key => $value) {
 
-            foreach ($leaveTypes as $key => $value) {
+                        $leaveTypeId = $leaveTypes[$key]['id'];
+                        $leaveTypeName = $this->leave_types_name($leaveTypeId);
 
-                $leaveTypeId = $leaveTypes[$key]['id'];
-                $leaveTypeName = $this->leave_types_name($leaveTypeId);
+                        $leaveStatusCount = DB::table('leaves')
+                            ->where('user_id', $v->user_id)
+                            ->where('leave_type_id', $leaveTypeId)
+                            ->where('leave_status', 2) // APPROVED
+                            ->count();
 
-                $leaveStatusCount = DB::table('leaves')
-                    ->where('leave_type_id', $leaveTypeId)
-                    ->where('leave_status', 2) // APPROVED
-                    ->count();
-
-                $leaveLimit = Leave_type::where('id', $leaveTypeId)->first()->leave_limit;
-                $daysLeft = $leaveLimit - $leaveStatusCount;
-                $modal[$leaveTypes[$key]['id']] = ' จำนวนวันที่ ' . $this->leave_types_name($leaveTypes[$key]['id']) . ' เหลือ ' .  $daysLeft .   ' วัน';
+                        $leaveLimit = Leave_type::where('id', $leaveTypeId)->first()->leave_limit;
+                        $daysLeft = $leaveLimit - $leaveStatusCount;
+                        $modal[$v->user_id][$leaveTypes[$key]['id']] = ' จำนวนวันที่ ' . $this->leave_types_name($leaveTypes[$key]['id']) . ' เหลือ ' .  $daysLeft .   ' วัน';
+                    }
+                }
             }
+            // dd( $modal);
+
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'msg' => $e->getMessage()]);
         }
@@ -293,6 +315,15 @@ class LeaveController extends Controller
                 ]);
             }
 
+            $noti =  new Notifications();
+            $noti->user_id = Auth::user()->id;
+            $noti->user_name = Auth::user()->name;
+            $noti->user_type = (Auth::user()->type == 'admin') ? 1 : 0;
+            $noti->leave_id = $request->id;
+            $noti->leave_name = $this->leave_name($request->id);
+            $noti->created_at     = date("Y-m-d H:i:s");
+            $noti->updated_at     = date("Y-m-d H:i:s");
+            $noti->save();
 
 
             return response()->json(['success' => true, 'msg' => 'Leaves status updated successfully']);
@@ -329,6 +360,15 @@ class LeaveController extends Controller
                     ]);
                 }
 
+                $noti =  new Notifications();
+                $noti->user_id = Auth::user()->id;
+                $noti->user_name = Auth::user()->name;
+                $noti->user_type = (Auth::user()->type == 'admin') ? 1 : 0;
+                $noti->leave_id = $request->id;
+                $noti->leave_name = $this->leave_name($request->id);
+                $noti->created_at     = date("Y-m-d H:i:s");
+                $noti->updated_at     = date("Y-m-d H:i:s");
+                $noti->save();
 
 
                 return response()->json(['success' => true, 'msg' => 'Leaves status updated successfully']);
@@ -352,50 +392,198 @@ class LeaveController extends Controller
             return response()->json(['success' => false, 'msg' => $e->getMessage()]);
         }
     }
+    public function user_delete_leaves(Request $request)
+    {
+        try {
+            $leaveId = $request->id;
+
+
+            $leave = Leave::where('id', $leaveId)
+                ->where('user_id', Auth::user()->id)
+                ->first();
+
+            if ($leave) {
+                $leave->delete();
+                return response()->json(['success' => true, 'msg' => 'Leave deleted successfully']);
+            } else {
+                return response()->json(['success' => false, 'msg' => 'Unauthorized deletion attempt']);
+            }
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'msg' => $e->getMessage()]);
+        }
+    }
     public function noti(Request $request)
     {
 
         try {
+
             $type = (Auth::user()->type == 'admin') ? 0 : 1;
 
-
-            $Notifi = Notifications::where('user_type', $type)
-                ->orderBy('created_at', 'desc') // Order by created_at descending
-                ->get();
+            if ($type  == 0) {
+                $Notifi = Notifications::where('user_type', $type)
+                    ->orderBy('created_at', 'desc') // Order by created_at descending
+                    ->get();
+            } else {
+                $userId = Auth::user()->id;
+                $Notifi = Notifications::selectRaw('notifications.*, leaves.user_id as leave_user_id, leaves.leave_status')
+                    ->join('leaves', 'notifications.leave_id', '=', 'leaves.id')
+                    ->where('leaves.user_id', $userId) // Filter by current user's ID
+                    ->where('notifications.user_id', '!=', 'leaves.user_id') // Filter where user_id in notifications is different from leaves
+                    ->where('user_type', '!=', 0) // Filter where user_type is not 0
+                    ->orderBy('created_at', 'desc')
+                    ->get();
+                // Auth::user()->id
+                // dd($Notifi );
+            }
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'msg' => $e->getMessage()]);
         }
         if ($type  == 0) {
             return view('leave.noti_admin', compact('Notifi'));
         } else {
-            return view('leave.noti_admin', compact('Notifi'));
+            return view('leave.noti_user', compact('Notifi'));
         }
     }
     public function seen_noti(Request $request)
     {
 
-   
-            try {
-                $type = (Auth::user()->type == 'admin') ? 0 : 1;
-        
-                $Notifi = Notifications::where('user_type', $type)
-                    ->orderBy('created_at', 'desc') // Order by created_at descending
-                    ->get();
-        
-                // Count unread notifications
-                $unreadCount = $Notifi->where('seen', 0)->count();
-        
-                // Prepare response data
-                $data = [
-                    'unread_count' => $unreadCount,
-                    'notifications' => $Notifi,
-                ];
-        
-                return response()->json(['success' => true, 'msg' => 'Notifications retrieved successfully', 'data' => $data]);
-            } catch (\Exception $e) {
-                return response()->json(['success' => false, 'msg' => $e->getMessage()]);
+
+        try {
+            $type = (Auth::user()->type == 'admin') ? 0 : 1;
+
+            $Notifi = Notifications::where('user_type', $type)
+                ->orderBy('created_at', 'desc') // Order by created_at descending
+                ->get();
+
+            // Count unread notifications
+            $unreadCount = $Notifi->where('seen', 0)->count();
+
+            // Prepare response data
+            $data = [
+                'unread_count' => $unreadCount,
+                'notifications' => $Notifi,
+            ];
+
+            return response()->json(['success' => true, 'msg' => 'Notifications retrieved successfully', 'data' => $data]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'msg' => $e->getMessage()]);
+        }
+    }
+    public function seen_noti_user(Request $request)
+    {
+
+        try {
+            $type = (Auth::user()->type == 'admin') ? 0 : 1;
+
+
+            $userId = Auth::user()->id;
+            $Notifi = Notifications::selectRaw('notifications.*, leaves.user_id as leave_user_id, leaves.leave_status')
+                ->join('leaves', 'notifications.leave_id', '=', 'leaves.id')
+                ->where('leaves.user_id', $userId) // Filter by current user's ID
+                ->where('notifications.user_id', '!=', 'leaves.user_id') // Filter where user_id in notifications is different from leaves
+                ->where('user_type', '!=', 0) // Filter where user_type is not 0
+                ->orderBy('created_at', 'desc')
+                ->get();
+            // $Notifi = Notifications::where('user_type', $type)
+            //     ->orderBy('created_at', 'desc') // Order by created_at descending
+            //     ->get();
+
+            // Count unread notifications
+            $unreadCount = $Notifi->where('seen', 0)->count();
+
+            // Prepare response data
+            $data = [
+                'unread_count' => $unreadCount,
+                'notifications' => $Notifi,
+            ];
+
+            return response()->json(['success' => true, 'msg' => 'Notifications retrieved successfully', 'data' => $data]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'msg' => $e->getMessage()]);
+        }
+    }
+    public function seen_admin($id)
+    {
+
+
+        try {
+            // ดึงข้อมูลผู้ใช้จาก ID ที่ส่งเข้ามา
+
+            $notif = Notifications::where('id', $id)
+                // ->where('user_id', Auth::user()->id)
+                ->first();
+
+            // ตรวจสอบว่ามีผู้ใช้หรือไม่
+            if (Auth::user()->type != 'admin') {
+                return response()->json(['success' => false, 'msg' => 'User not found or is Admin']);
             }
-        
+            // dd($notif);
+            if ($notif->seen == 0) {
+                $notif->seen = 1;
+                $notif->save();
+            }
+
+
+
+            return response()->json(['success' => true, 'msg' => 'User status updated successfully']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'msg' => $e->getMessage()]);
+        }
+    }
+    public function seen_user($id)
+    {
+
+
+        try {
+            // ดึงข้อมูลผู้ใช้จาก ID ที่ส่งเข้ามา
+
+            $notif = Notifications::where('id', $id)
+                // ->where('user_id', Auth::user()->id)
+                ->first();
+
+            // ตรวจสอบว่ามีผู้ใช้หรือไม่
+            if (Auth::user()->id == $notif->user_id) {
+                return response()->json(['success' => false, 'msg' => 'User not found ']);
+            }
+            // dd($notif);
+            if ($notif->seen == 0) {
+                $notif->seen = 1;
+                $notif->save();
+            }
+
+
+
+            return response()->json(['success' => true, 'msg' => 'User status updated successfully']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'msg' => $e->getMessage()]);
+        }
+    }
+    public function leave_type()
+    {
+
+
+        try {
+
+            $leaveTypes  = Leave_type::all();
+
+            return view('leave.leave_type', compact('leaveTypes'));
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'msg' => $e->getMessage()]);
+        }
+    }
+    public function log_login(Request $request)
+    {
+
+
+        try {
+       
+                           
+            $log_login  =  DB::table('log_login')->get();
+
+            return view('leave.log_login', compact('log_login'));
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'msg' => $e->getMessage()]);
+        }
     }
 
 
@@ -405,6 +593,7 @@ class LeaveController extends Controller
 
             $leaveStatusCount = DB::table('leaves')
                 ->join('leave_types', 'leave_types.id', '=', 'leaves.leave_type_id')
+                ->where('user_id', Auth::user()->id)
                 ->where('leave_status', $leaveStatus)
                 ->select(DB::raw('COUNT(DISTINCT leaves.id) AS count'))
                 ->first()->count;
@@ -437,6 +626,7 @@ class LeaveController extends Controller
             return response()->json(['success' => false, 'msg' => $e->getMessage()]);
         }
     }
+
     function leave_types_name($leaveStatus)
     {
         try {
@@ -446,6 +636,19 @@ class LeaveController extends Controller
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'msg' => $e->getMessage()]);
         }
+        return isset($leave->leave_type_name) ? $leave->leave_type_name : '';
+    }
+    function leave_name($id)
+    {
+        try {
+            $leave = DB::table('leaves')
+                ->join('leave_types', 'leaves.leave_type_id', '=', 'leave_types.id')
+                ->where('leaves.id', $id) // Use $id instead of $$id
+                ->first();
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'msg' => $e->getMessage()]);
+        }
+
         return isset($leave->leave_type_name) ? $leave->leave_type_name : '';
     }
 }

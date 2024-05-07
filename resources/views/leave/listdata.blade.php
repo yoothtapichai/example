@@ -48,7 +48,7 @@
                                     <th>
                                         @if (count($modal) > 0)
                                             <ul class="list-group list-group-flush">
-                                                @foreach ($modal as $m)
+                                                @foreach ($modal[ $leave->user_id] as $m)
                                                     <li class="list-group-item"> {{ $m }}</li>
                                                 @endforeach
                                             </ul>

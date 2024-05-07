@@ -59,6 +59,13 @@
                     <div class="nav">
                         <div class="sb-sidenav-menu-heading">เมนู</div>
 
+                        <a class="nav-link" href="{{ route('noti') }}">
+                            <div class="sb-nav-link-icon"><i id="iconnoti" class="fa-regular fa-bell"></i>
+                                <span style="color: yellow" id='noti_span'></span>
+                            </div>
+                            แจ้งเตือน
+                        </a>
+
                         @if (auth()->user()->type == 'user')
                             <a class="nav-link" href="{{ route('leave.index') }}">
                                 <div class="sb-nav-link-icon"><i class="fas fa-tachometer-alt"></i></div>
@@ -76,14 +83,20 @@
                                 อนุมัติการลา
 
                             </a>
+                            <a class="nav-link" href="{{ route('leaveType') }}">
+                                <div class="sb-nav-link-icon"><i class="fas fa-tachometer-alt"></i></div>
+                                ประเภทการลา
+
+                            </a>
+                            <a class="nav-link" href="{{ route('logLogin') }}">
+                                <div class="sb-nav-link-icon"><i class="fas fa-tachometer-alt"></i></div>
+                                Log login
+
+                            </a>
                         @endif
-                        <a class="nav-link" href="{{ route('noti') }}">
-                            <div class="sb-nav-link-icon"><i id="iconnoti" class="fa-regular fa-bell"></i>
-                                <span style="color: yellow" id='noti_span'></span>
-                            </div>
-                            แจ้งเตือน
-                        </a>
-                        <a class="nav-link" href="{{ route('logout') }}">
+                  
+                        <a class="nav-link" href="{{ route('logout') }}"   onclick="event.preventDefault();
+                        document.getElementById('logout-form').submit();" >
                             <div class="sb-nav-link-icon"><i class="fa-solid fa-right-from-bracket"></i></div>
                             ออกจากระบบ
                         </a>
@@ -115,6 +128,7 @@
             </footer>
         </div>
     </div>
+    <input type="hidden" id="user_type_not" value="{{Auth::user()->type}}">
     {{-- <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"> --}}
     </script>
     <script src="{{ asset('public/backend/js/bootstrap.bundle.min.js') }}"></script>
@@ -131,9 +145,15 @@
         $(document).ready(function() {
 
             let csrfToken = $('meta[name="csrf-token"]').attr('content'); // เก็บค่า CSRF token
-
+            var url ='';
+            if($('#user_type_not').val()=='admin'){
+                url = '{{ route('seenNoti') }}';
+            }else{
+                url = '{{ route('seenNotiUser') }}';
+            }
+            
             $.ajax({
-                url: '{{ route('seenNoti') }}',
+                url: url,
                 method: "GET",
                 // data: formData,
                 headers: {

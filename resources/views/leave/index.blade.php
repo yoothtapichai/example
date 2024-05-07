@@ -101,11 +101,14 @@
                                                         data-leave_period="{{ $leave->leave_period }}"
                                                         data-phone_number="{{ $leave->phone_number }}"
                                                         data-leave_reason="{{ $leave->leave_reason }}">รออนุมัติ</button>
+                                                        <button type="button" class="btn btn-outline-danger deleteRequest"
+                                                        data-id="{{ $leave->id }}">ลบ</button>
                                                 @elseif($leave->leave_status == 2)
                                                     <button type="button" class="btn btn-success" disabled>อนุมัติ</button>
                                                 @elseif($leave->leave_status == 3)
-                                                    <button type="button" class="btn btn-danger modalEdit" data-bs-toggle="modal"
-                                                        data-bs-target="#modalEdit" data-id="{{ $leave->id }}"
+                                                    <button type="button" class="btn btn-danger modalEdit"
+                                                        data-bs-toggle="modal" data-bs-target="#modalEdit"
+                                                        data-id="{{ $leave->id }}"
                                                         data-leave_type_id="{{ $leave->leave_type_id }}"
                                                         data-start_date="{{ $leave->start_date }}"
                                                         data-end_date="{{ $leave->end_date }}"
@@ -114,6 +117,8 @@
                                                         data-leave_reason="{{ $leave->leave_reason }}"
                                                         data-leave_status="{{ $leave->leave_status }}"
                                                         data-admin_comment="{{ $leave->admin_comment }}">ไม่อนุมัติ</button>
+                                                        <button type="button" class="btn btn-outline-danger deleteRequest"
+                                                        data-id="{{ $leave->id }}">ลบ</button>
                                                 @endif
 
                                             </td>
@@ -182,7 +187,7 @@
 
                         <div class=" mb-3" hidden id="div_admin_comment">
                             <label for="floatingInput" class="form-label">ตอบกลับ</label>
-                            <textarea class="form-control" id="admin_comment" rows="5" disabled ></textarea>
+                            <textarea class="form-control" id="admin_comment" rows="5" disabled></textarea>
 
 
                         </div>
@@ -243,7 +248,7 @@
                         </div>
                         <div class=" mb-3 text-end">
                             <button type="submit" class="btn btn-primary editRequest">แก้ไข</button>
-                            <button type="submit" class="btn btn-danger deleteRequest">ลบ</button>
+                           
 
 
                         </div>
@@ -267,12 +272,12 @@
                 $('#editRequest').trigger('reset');
                 var leave_status = $(this).attr('data-leave_status');
                 var admin_comment = $(this).attr('data-admin_comment');
-             
+
                 if (leave_status == 3 || leave_status == '3') {
                     $('#div_admin_comment').removeAttr("hidden");
                     $('#admin_comment').val(admin_comment);
                 }
-
+               
 
                 var leave_id = $(this).attr('data-id');
                 var leave_type_id = $(this).attr('data-leave_type_id');
@@ -365,6 +370,55 @@
                 });
 
 
+            })
+            $(".deleteRequest").on('click', function() {
+                Swal.fire({
+                    title: "คุณต้องการลบข้อมูลเหรือไม่ ? ",
+                    text: "กดปุ่มเพื่อตกลงเพื่อยืนยันการลบ",
+                    icon: "question",
+                    confirmButtonText: "ตกลง",
+                    allowOutsideClick: false // ปิดป๊อปอัพเมื่อกดปุ่ม "ปิด"
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        var leave_id = $(this).attr('data-id');
+                        let formData = new FormData();
+                        let csrfToken = $('meta[name="csrf-token"]').attr('content');
+                        formData.append('id', leave_id);
+                        formData.append('_token', csrfToken);
+                        $.ajax({
+                            url: '{{ route('userDeleteLeaves') }}',
+                            method: "POST",
+                            data: formData,
+                            headers: {
+                                'X-CSRF-TOKEN': csrfToken // เพิ่ม CSRF token เข้าไปใน header
+                            },
+                            contentType: false,
+                            processData: false,
+                            beforeSend: function() {
+
+                            },
+                            complete: function() {
+
+                            },
+                            success: function(data) {
+                                // console.log(data);
+                                if (data.success == true) {
+
+                                    location.reload(true);
+
+
+                                } else if (data.success == false) {
+                                    printErrorMsg(data.msg);
+                                } else {
+                                    printValidationErrorMsg(data.msg);
+                                }
+
+                            }
+
+                        });
+
+                    }
+                });
             })
 
 

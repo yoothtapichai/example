@@ -116,7 +116,7 @@
             $('.status-eye').on('click', function() {
                 var status_eye = $(this);
                 var id = $(this).attr('data-id');
-                var url = "{{ route('seenAdmin', 'l_id') }}";
+                var url = "{{ route('seenUser', 'l_id') }}";
                 url = url.replace('l_id', id);
                 let csrfToken = $('meta[name="csrf-token"]').attr('content');
 
@@ -172,7 +172,7 @@
                     let csrfToken = $('meta[name="csrf-token"]').attr('content'); // เก็บค่า CSRF token
 
                     $.ajax({
-                        url: '{{ route('seenNoti') }}',
+                        url: '{{ route('seenNotiUser') }}',
                         method: "GET",
                         // data: formData,
                         headers: {

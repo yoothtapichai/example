@@ -43,7 +43,10 @@ Route::middleware(['auth', 'user-access:user'])->group(function () {
     Route::get('/leave/request', [LeaveController::class, 'request'])->name('leave.request');
     Route::post('/leave/adddata', [LeaveController::class, 'adddata'])->name('leaveAddData');
     Route::post('/leave/editdata', [LeaveController::class, 'editdata'])->name('leaveEditData');
+    Route::post('/user/leave/user-delete-leaves', [LeaveController::class, 'user_delete_leaves'])->name('userDeleteLeaves');
+    Route::post('/seen-user/{id}', [LeaveController::class, 'seen_user'])->name('seenUser');
 
+  
 });
 Route::get('/home', [HomeController::class, 'index'])->name('home');
 //Admin Routes List
@@ -60,14 +63,18 @@ Route::middleware(['auth', 'user-access:admin'])->group(function () {
     Route::post('/admin/leave/approved', [LeaveController::class, 'approved'])->name('adminLeavesApproved');
     Route::post('/admin/leave/admin-comment', [LeaveController::class, 'admin_comment'])->name('adminComment');
     Route::post('/admin/leave/admin-delete-leaves', [LeaveController::class, 'admin_delete_leaves'])->name('adminDeleteLeaves');
-    // Route::post('/admin/leave/reject', [LeaveController::class, 'rejectLeave'])->name('admin.leaves.reject');
-    // Route::get('/admin/leave/edit', [LeaveController::class, 'editLeave'])->name('admin.leaves.edit');
-    // Route::put('/admin/leave/update', [LeaveController::class, 'updateLeave'])->name('admin.leaves.update');
-    
+   
+    Route::get('/leave-type', [LeaveController::class, 'leave_type'])->name('leaveType');
+    Route::get('/log-login', [LeaveController::class, 'log_login'])->name('logLogin');
+
+
+    //แจ้งเตือน
+    Route::post('/seen-admin/{id}', [LeaveController::class, 'seen_admin'])->name('seenAdmin');
 });
 
 Route::get('/noti', [LeaveController::class, 'noti'])->name('noti');
 Route::get('/seen-noti', [LeaveController::class, 'seen_noti'])->name('seenNoti');
+Route::get('/seen-noti-user', [LeaveController::class, 'seen_noti_user'])->name('seenNotiUser');
 
 // profile
 Route::get('/profile', [ProfileController::class, 'profile'])->name('profile');
